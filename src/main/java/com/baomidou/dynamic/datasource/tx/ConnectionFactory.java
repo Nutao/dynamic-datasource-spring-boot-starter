@@ -15,6 +15,8 @@
  */
 package com.baomidou.dynamic.datasource.tx;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author funkye
  */
+@Slf4j
 public class ConnectionFactory {
 
     private static final ThreadLocal<Map<String, ConnectionProxy>> CONNECTION_HOLDER =
@@ -48,14 +51,24 @@ public class ConnectionFactory {
         return CONNECTION_HOLDER.get().get(ds);
     }
 
-    public static void notify(Boolean state) {
+    public static void notify(Boolean state) throws Exception {
+        Exception exception = null;
         try {
             Map<String, ConnectionProxy> concurrentHashMap = CONNECTION_HOLDER.get();
             for (ConnectionProxy connectionProxy : concurrentHashMap.values()) {
-                connectionProxy.notify(state);
+                try {
+                    connectionProxy.notify(state);
+                } catch (Exception e) {
+                    // notify as much as possible
+                    log.error("", e);
+                    exception = e;
+                }
             }
         } finally {
             CONNECTION_HOLDER.remove();
+            if (exception != null){
+                throw exception;
+            }
         }
     }
 

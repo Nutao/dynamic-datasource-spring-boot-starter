@@ -43,10 +43,14 @@ public class DynamicLocalTransactionAdvisor implements MethodInterceptor {
             o = methodInvocation.proceed();
         } catch (Exception e) {
             state = false;
+            log.error("", e);
             throw e;
         } finally {
-            ConnectionFactory.notify(state);
-            TransactionContext.remove();
+            try {
+                ConnectionFactory.notify(state);
+            } finally {
+                TransactionContext.remove();
+            }
         }
         return o;
     }
